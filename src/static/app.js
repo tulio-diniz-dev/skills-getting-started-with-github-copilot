@@ -17,8 +17,17 @@ document.addEventListener("DOMContentLoaded", () => {
   // Function to fetch activities from API
   async function fetchActivities() {
     try {
-      const response = await fetch("/activities");
-      const activities = await response.json();
+  const response = await fetch("/activities", { cache: "no-store" });
+      if (!response.ok) {
+        const text = await response.text().catch(() => "");
+        throw new Error(`HTTP ${response.status} ${response.statusText} - ${text}`);
+      }
+      let activities;
+      try {
+        activities = await response.json();
+      } catch (e) {
+        throw new Error("Invalid JSON response from /activities: " + e.message);
+      }
 
       // Clear loading message and previous options
       activitiesList.innerHTML = "";
@@ -36,8 +45,8 @@ document.addEventListener("DOMContentLoaded", () => {
           ? `<div class="participants">
                <p class="participants-title"><strong>Participants (${participants.length}):</strong></p>
                <ul class="participants-list">
-                 ${participants.map(p => `<li>${escapeHtml(p)}</li>`).join("")}
-               </ul>
+                 ${participants.map(p => `<li class="participant-item" data-email="${escapeHtml(p)}" data-activity="${escapeHtml(name)}"><span class="participant-email">${escapeHtml(p)}</span><button class="unregister-btn" data-email="${escapeHtml(p)}" data-activity="${escapeHtml(name)}" aria-label="Unregister ${escapeHtml(p)}">×</button></li>`).join("")}
+                </ul>
              </div>`
           : `<div class="participants">
                <p class="participants-title"><strong>Participants:</strong></p>
@@ -87,8 +96,8 @@ document.addEventListener("DOMContentLoaded", () => {
         messageDiv.textContent = result.message;
         messageDiv.className = "success";
         signupForm.reset();
-        // refresh list to show new participant
-        fetchActivities();
+  // refresh list to show new participant (await to ensure UI updates before continuing)
+  await fetchActivities();
       } else {
         messageDiv.textContent = result.detail || "An error occurred";
         messageDiv.className = "error";
@@ -105,6 +114,49 @@ document.addEventListener("DOMContentLoaded", () => {
       messageDiv.className = "error";
       messageDiv.classList.remove("hidden");
       console.error("Error signing up:", error);
+    }
+  });
+
+  // Event delegation for unregister buttons
+  activitiesList.addEventListener("click", async (event) => {
+    const btn = event.target.closest(".unregister-btn");
+    if (!btn) return;
+
+    const email = btn.dataset.email;
+    const activity = btn.dataset.activity;
+
+    if (!email || !activity) return;
+
+    // disable button while processing
+    btn.disabled = true;
+
+    try {
+      const response = await fetch(
+        `/activities/${encodeURIComponent(activity)}/unregister?email=${encodeURIComponent(email)}`,
+        { method: "DELETE" }
+      );
+
+      const result = await response.json();
+
+        if (response.ok) {
+        messageDiv.textContent = result.message;
+        messageDiv.className = "message success";
+        // refresh list (simpler and keeps consistency)
+          await fetchActivities();
+      } else {
+        messageDiv.textContent = result.detail || "Failed to unregister";
+        messageDiv.className = "message error";
+      }
+      messageDiv.classList.remove("hidden");
+
+      setTimeout(() => messageDiv.classList.add("hidden"), 4000);
+    } catch (err) {
+      console.error("Error unregistering:", err);
+      messageDiv.textContent = "Failed to unregister. Please try again.";
+      messageDiv.className = "message error";
+      messageDiv.classList.remove("hidden");
+    } finally {
+      btn.disabled = false;
     }
   });
 

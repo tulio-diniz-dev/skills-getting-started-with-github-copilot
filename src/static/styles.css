@@ -91,9 +91,10 @@ section h3 {
 }
 
 .participants-list {
-  list-style: disc;
+  /* remover bullets e alinhar itens para acomodar botão de remoção */
+  list-style: none;
   margin: 0;
-  margin-left: 18px;
+  margin-left: 0;
   padding: 4px 0;
   color: #333;
   font-size: 14px;
@@ -102,6 +103,33 @@ section h3 {
 .participants-list li {
   padding: 6px 0;
   border-bottom: 1px dashed rgba(0,0,0,0.04);
+}
+
+.participant-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.participant-email {
+  word-break: break-word;
+  color: #333;
+}
+
+.unregister-btn {
+  background: transparent;
+  border: none;
+  color: #c62828;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+.unregister-btn:hover {
+  background: rgba(198,40,40,0.08);
 }
 
 .participants-list li:last-child {
